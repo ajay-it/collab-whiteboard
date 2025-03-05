@@ -8,7 +8,6 @@ const ReactKonva = ({ selectedTool, boardId }) => {
   const [lines, setLines] = useState([]);
   const [isDrawing, setIsDrawing] = useState(false);
   const [penColor, setPenColor] = useState("black");
-  const [stageData, setStageData] = useState();
   // const [cursorPosition, setCursorPosition] = useState();
   const [shapeId, setShapeId] = useState();
 
@@ -42,7 +41,6 @@ const ReactKonva = ({ selectedTool, boardId }) => {
 
     socket.emit(EVENTS.BOARD.DRAW, dataToEmit);
 
-    // setLines([...lines, dataToEmit]);
     setLines((prevLines) => [...prevLines, dataToEmit]);
   };
 
@@ -77,12 +75,10 @@ const ReactKonva = ({ selectedTool, boardId }) => {
   };
 
   const handleStageLoad = (data) => {
-    setStageData(JSON.parse(data.jsonData));
+    setLines((prevLines) => [...prevLines, ...data.shapes]);
   };
 
   const handleBoardDraw = (data) => {
-    console.log("🚀 ~ handleBoardDraw ~ data:", data);
-    // setLines([...lines, data]);
     setLines((prevLines) => [...prevLines, data]);
   };
 
@@ -105,7 +101,6 @@ const ReactKonva = ({ selectedTool, boardId }) => {
 
       const onContentReady = () => {
         const stageJSON = stage.toJSON();
-        setStageData(JSON.parse(stageJSON));
 
         socket.emit(EVENTS.BOARD.CREATE, { boardId, stageJSON });
       };
@@ -126,10 +121,6 @@ const ReactKonva = ({ selectedTool, boardId }) => {
       };
     }
   }, [boardId]);
-
-  useEffect(() => {
-    console.log("Board data state", stageData);
-  }, [stageData]);
 
   return (
     <>
