@@ -1,8 +1,9 @@
-import { FaPen, FaEraser } from "react-icons/fa";
+import { FaPen, FaEraser, FaRegSquare } from "react-icons/fa";
 
 export const tools = [
   { name: "pen", icon: FaPen },
   { name: "eraser", icon: FaEraser },
+  { name: "rect", icon: FaRegSquare },
 ];
 
 export const EVENTS = {
@@ -13,13 +14,12 @@ export const EVENTS = {
     CREATE: "board.create",
     LOAD: "board.load",
     DRAW: "board.draw",
-    CLEAR: "board.clear",
-    FREEHAND: "board.freehand",
   },
 
   SHAPE: {
-    ADD: "shape.add",
+    CREATE: "shape.create",
     UPDATE: "shape.update",
+    SAVE: "shape.save",
     DELETE: "shape.delete",
   },
 };

@@ -5,7 +5,7 @@ const Toolbar = ({ selectedTool, setSelectedTool }) => {
   console.log("🚀 ~ Toolbar ~ selectedTool:", selectedTool);
 
   return (
-    <div className="bg-white drop-shadow-lg p-2 mt-4 max-w-[500px] m-auto">
+    <div className="bg-white drop-shadow-lg p-2 mt-4 w-[70%] left-1/2 -translate-x-1/2 z-10 fixed rounded">
       {tools.map((tool) => (
         <button
           key={tool.name}

@@ -3,45 +3,81 @@ import { Stage, Layer, Rect, Transformer, Line } from "react-konva";
 import socket from "../socket";
 import { EVENTS } from "../utils/constants";
 import { v4 as uuidv4 } from "uuid";
+import Rectangle from "./shapes/Rectangle";
 
 const ReactKonva = ({ selectedTool, boardId }) => {
   const [lines, setLines] = useState([]);
+  const [rectangles, setRectangles] = useState([
+    { id: "rect1", x: 50, y: 60, width: 100, height: 90, fill: "red" },
+    { id: "rect2", x: 200, y: 150, width: 120, height: 80, fill: "blue" },
+  ]);
+  const [selectedId, setSelectedId] = useState(null);
   const [isDrawing, setIsDrawing] = useState(false);
   const [penColor, setPenColor] = useState("black");
   // const [cursorPosition, setCursorPosition] = useState();
   const [shapeId, setShapeId] = useState();
+  const [startPos, setStartPos] = useState(null);
+
+  const [shapePreviews, setShapePreviews] = useState({});
 
   const stageRef = useRef(null);
 
   const handleMouseDown = (e) => {
+    if (e.target === e.target.getStage()) {
+      setSelectedId(null);
+    }
+
     if (!selectedTool) {
       return;
     }
 
+    const uniqueId = uuidv4();
+    setShapeId(uniqueId);
     setIsDrawing(true);
     const pos = e.target.getStage().getPointerPosition();
 
-    const uniqueId = uuidv4();
-    setShapeId(uniqueId);
+    if (selectedTool === "pen" || selectedTool === "eraser") {
+      const initialData = {
+        boardId,
+        shapeId: uniqueId,
+        attrs: {
+          points: [pos.x, pos.y],
+          stroke: penColor,
+          strokeWidth: 5,
+          globalCompositeOperation:
+            selectedTool === "eraser" ? "destination-out" : "source-over",
+        },
+        className: "Line",
+        tool: selectedTool,
+      };
 
-    const dataToEmit = {
-      boardId,
-      shapeId: uniqueId,
-      attrs: {
-        points: [pos.x, pos.y],
-        stroke: penColor,
-        strokeWidth: 5,
-        lineCap: "round",
-        globalCompositeOperation:
-          selectedTool === "eraser" ? "destination-out" : "source-over",
-      },
-      className: "Line",
-      tool: selectedTool,
-    };
+      setShapePreviews((prev) => ({ ...prev, [socket.id]: initialData }));
 
-    socket.emit(EVENTS.BOARD.DRAW, dataToEmit);
+      setLines((prevLines) => [...prevLines, initialData]);
 
-    setLines((prevLines) => [...prevLines, dataToEmit]);
+      socket.emit(EVENTS.SHAPE.CREATE, { senderId: socket.id, initialData });
+    } else if (selectedTool === "rect") {
+      setStartPos(pos);
+      const dataToEmit = {
+        boardId,
+        shapeId,
+        attrs: {
+          draggable: true,
+          fill: "",
+          height: 0,
+          width: 0,
+          x: pos.x,
+          y: pos.y,
+        },
+        className: "Rect",
+        tool: selectedTool,
+      };
+
+      setShapePreviews((prev) => ({ ...prev, [socket.id]: dataToEmit }));
+      setRectangles((prevRect) => [...prevRect, dataToEmit]);
+
+      socket.emit(EVENTS.SHAPE.CREATE, dataToEmit);
+    }
   };
 
   const handleMouseMove = (e) => {
@@ -51,47 +87,132 @@ const ReactKonva = ({ selectedTool, boardId }) => {
     }
 
     const stage = e.target.getStage();
-    const point = stage.getPointerPosition();
+    const pos = stage.getPointerPosition();
 
-    socket.emit(EVENTS.BOARD.FREEHAND, {
-      boardId,
-      shapeId,
-      points: [point.x, point.y],
-    });
+    if (selectedTool === "pen" || selectedTool === "eraser") {
+      setShapePreviews((prev) => {
+        const preview = prev[socket.id];
+        if (preview) {
+          return {
+            ...prev,
+            [socket.id]: {
+              ...preview,
+              attrs: {
+                ...preview.attrs,
+                points: [...preview.attrs.points, pos.x, pos.y],
+              },
+            },
+          };
+        }
+        return prev;
+      });
 
-    setLines((prevLines) => {
-      const newLines = [...prevLines];
-      const lastLine = newLines[newLines.length - 1];
-      lastLine.attrs.points = lastLine.attrs.points.concat([point.x, point.y]);
-      return newLines;
-    });
-  };
+      const updatedData = {
+        boardId,
+        shapeId,
+        className: "Line",
+        points: [pos.x, pos.y],
+      };
 
-  const handleMouseUp = () => {
-    if (isDrawing) {
-      setIsDrawing(false);
-      console.log("Data to emit on mouse up");
+      socket.emit(EVENTS.SHAPE.UPDATE, { senderId: socket.id, updatedData });
+    } else if (selectedTool === "rect") {
+      // setShapePreviews((prev) => {
+      //   return {
+      //     ...prevRect,
+      //     x: Math.min(pos.x, startPos.x),
+      //     y: Math.min(pos.y, startPos.y),
+      //     width: Math.abs(pos.x - startPos.x),
+      //     height: Math.abs(pos.y - startPos.y),
+      //   };
+      // });
+
+      socket.emit(EVENTS.SHAPE.UPDATE, {
+        boardId,
+        shapeId,
+        x: Math.min(pos.x, startPos.x),
+        y: Math.min(pos.y, startPos.y),
+        width: Math.abs(pos.x - startPos.x),
+        height: Math.abs(pos.y - startPos.y),
+      });
     }
   };
 
-  const handleStageLoad = (data) => {
+  useEffect(() => {
+    console.log("shapePreview", shapePreviews);
+  }, [shapePreviews]);
+
+  const handleMouseUp = () => {
+    setIsDrawing(false);
+    if (selectedTool === "pen" || selectedTool === "eraser")
+      setLines((prevLines) => {
+        const newLines = [...prevLines];
+        const lastLine = newLines[newLines.length - 1];
+        lastLine.attrs.points = shapePreviews[socket.id].attrs.points;
+        return newLines;
+      });
+
+    socket.emit(EVENTS.SHAPE.SAVE, {
+      senderId: socket.id,
+      data: shapePreviews[socket.id],
+    });
+
+    setShapePreviews((prev) => {
+      const { [socket.id]: _, ...remainingPreviews } = prev;
+      return remainingPreviews;
+    });
+  };
+
+  const handleLoadStage = (data) => {
+    //TODO: handle for all the shapes
     setLines((prevLines) => [...prevLines, ...data.shapes]);
   };
 
-  const handleBoardDraw = (data) => {
-    setLines((prevLines) => [...prevLines, data]);
+  const handleCreateShape = ({ senderId, initialData }) => {
+    if (initialData.className === "Line") {
+      setLines((prevLines) => [...prevLines, initialData]);
+
+      setShapePreviews((prev) => ({ ...prev, [senderId]: initialData }));
+    } else if (initialData.className === "Rect") {
+      setRectangles((prevRect) => [...prevRect, initialData]);
+    }
   };
 
-  const handleFreehand = (data) => {
-    setLines((prevLines) => {
-      const newLines = [...prevLines];
-      const lastLine = newLines[newLines.length - 1];
-      lastLine.attrs.points = lastLine.attrs.points.concat([
-        data.points[0],
-        data.points[1],
-      ]);
+  const handleUpdateShape = ({ senderId, updatedData }) => {
+    if (updatedData.className === "Line") {
+      setShapePreviews((prev) => {
+        const preview = prev[senderId];
+        if (preview) {
+          return {
+            ...prev,
+            [senderId]: {
+              ...preview,
+              attrs: {
+                ...preview.attrs,
+                points: [
+                  ...preview.attrs.points,
+                  updatedData.points[0],
+                  updatedData.points[1],
+                ],
+              },
+            },
+          };
+        }
+      });
+    }
+  };
 
-      return newLines;
+  const handleSaveShape = ({ senderId, data }) => {
+    if (data.className === "Line")
+      setLines((prevLines) => {
+        const newLines = [...prevLines];
+        const lastLine = newLines[newLines.length - 1];
+        lastLine.attrs.points = data.attrs.points;
+        return newLines;
+      });
+
+    setShapePreviews((prev) => {
+      const { [senderId]: _, ...remainingPreviews } = prev;
+      return remainingPreviews;
     });
   };
 
@@ -110,14 +231,16 @@ const ReactKonva = ({ selectedTool, boardId }) => {
         onContentReady();
       }, 500);
 
-      socket.on(EVENTS.BOARD.LOAD, handleStageLoad);
-      socket.on(EVENTS.BOARD.DRAW, handleBoardDraw);
-      socket.on(EVENTS.BOARD.FREEHAND, handleFreehand);
+      socket.on(EVENTS.BOARD.LOAD, handleLoadStage);
+      socket.on(EVENTS.SHAPE.CREATE, handleCreateShape);
+      socket.on(EVENTS.SHAPE.UPDATE, handleUpdateShape);
+      socket.on(EVENTS.SHAPE.SAVE, handleSaveShape);
 
       return () => {
-        socket.off(EVENTS.BOARD.LOAD, handleStageLoad);
-        socket.off(EVENTS.BOARD.DRAW, handleBoardDraw);
-        socket.off(EVENTS.BOARD.FREEHAND, handleFreehand);
+        socket.off(EVENTS.BOARD.LOAD);
+        socket.off(EVENTS.SHAPE.CREATE);
+        socket.off(EVENTS.SHAPE.UPDATE);
+        socket.off(EVENTS.SHAPE.SAVE);
       };
     }
   }, [boardId]);
@@ -126,25 +249,54 @@ const ReactKonva = ({ selectedTool, boardId }) => {
     <>
       <Stage
         ref={stageRef}
-        width={500}
-        height={500}
-        className="border border-red-500 w-fit m-auto mt-10"
+        width={1000}
+        height={1000}
+        className="border border-red-500 m-auto w-fit"
         onMouseDown={handleMouseDown}
-        onMousemove={handleMouseMove}
-        onMouseup={handleMouseUp}
+        onTouchStart={handleMouseDown}
+        onMouseMove={handleMouseMove}
+        onMouseUp={handleMouseUp}
       >
         <Layer>
-          {lines.map((line, i) => (
+          {lines?.map((line, i) => (
             <Line
               key={i}
               points={line.attrs.points}
               stroke={line.attrs.stroke}
               strokeWidth={line.attrs.strokeWidth}
-              lineCap={line.attrs.lineCap}
+              lineCap="round"
+              lineJoin="round"
+              tension={0.5}
               globalCompositeOperation={line.attrs.globalCompositeOperation}
             />
           ))}
-          {/* <Transformer ref={trRef} flipEnabled={false} /> */}
+
+          {Object.keys(shapePreviews).length > 0 &&
+            Object.entries(shapePreviews).map(([id, shapeData]) => (
+              <Line
+                key={id}
+                {...shapeData}
+                lineCap="round"
+                lineJoin="round"
+                tension={0.5}
+              />
+            ))}
+
+          {rectangles?.map((rect, i) => (
+            <Rectangle
+              key={i}
+              shapeProps={rect}
+              isSelected={rect.id === selectedId}
+              onSelect={() => {
+                setSelectedId(rect.id);
+              }}
+              onChange={(newAttrs) => {
+                const rects = rectangles.slice();
+                rects[i] = newAttrs;
+                setRectangles(rects);
+              }}
+            />
+          ))}
         </Layer>
       </Stage>
       <button onClick={() => setPenColor("blue")}>Blue</button>
