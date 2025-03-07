@@ -1,17 +1,16 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Stage, Layer, Rect, Transformer, Line } from "react-konva";
 import socket from "../socket";
 import { EVENTS } from "../utils/constants";
 import { v4 as uuidv4 } from "uuid";
-import Rectangle from "./shapes/Rectangle";
+import RectangleComponent from "./shapes/RectangleComponent";
 import ShapePreview from "./ShapePreview";
+import LineComponent from "./shapes/LineComponent";
 
 const ReactKonva = ({ selectedTool, boardId }) => {
   const [lines, setLines] = useState([]);
-  const [rectangles, setRectangles] = useState([
-    { id: "rect1", x: 50, y: 60, width: 100, height: 90, fill: "red" },
-    { id: "rect2", x: 200, y: 150, width: 120, height: 80, fill: "blue" },
-  ]);
+  const [rectangles, setRectangles] = useState([]);
+
   const [selectedId, setSelectedId] = useState(null);
   const [isDrawing, setIsDrawing] = useState(false);
   const [penColor, setPenColor] = useState("black");
@@ -51,6 +50,7 @@ const ReactKonva = ({ selectedTool, boardId }) => {
         },
         className: "Line",
         tool: selectedTool,
+        createdAt: new Date().toISOString(),
       };
 
       setShapePreviews((prev) => ({ ...prev, [socket.id]: initialData }));
@@ -75,6 +75,7 @@ const ReactKonva = ({ selectedTool, boardId }) => {
         },
         className: "Rect",
         tool: selectedTool,
+        createdAt: new Date().toISOString(),
       };
 
       setShapePreviews((prev) => ({ ...prev, [socket.id]: initialData }));
@@ -322,6 +323,12 @@ const ReactKonva = ({ selectedTool, boardId }) => {
     }
   }, [boardId]);
 
+  // const sortedShapes = useMemo(() => {
+  //   return [...lines, ...rectangles]
+  //     .slice()
+  //     .sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+  // }, [lines, rectangles]);
+
   return (
     <>
       <Stage
@@ -336,25 +343,35 @@ const ReactKonva = ({ selectedTool, boardId }) => {
       >
         <Layer>
           {lines?.map((line, i) => (
-            <Line
-              key={i}
-              points={line.attrs.points}
-              stroke={line.attrs.stroke}
-              strokeWidth={line.attrs.strokeWidth}
-              lineCap="round"
-              lineJoin="round"
-              tension={0.5}
-              globalCompositeOperation={line.attrs.globalCompositeOperation}
-            />
+            <LineComponent key={line.shapeId + i} line={line} />
           ))}
 
-          {/* {Object.keys(shapePreviews).length > 0 && ( */}
-          <ShapePreview shapePreviews={shapePreviews} />
-          {/* )} */}
+          {/* {sortedShapes?.map((shape, i) => {
+            if (shape.className === "Line") {
+              console.log("sdflie", shape);
+              return <LineComponent key={shape.shapeId + i} line={shape} />;
+            } else if (shape.className === "Rect") {
+              return (
+                <RectangleComponent
+                  key={shape.shapeId + i}
+                  shapeProps={shape}
+                  isSelected={shape.id === selectedId}
+                  onSelect={() => {
+                    setSelectedId(shape.id);
+                  }}
+                  onChange={(newAttrs) => {
+                    const rects = rectangles.slice();
+                    rects[i] = newAttrs;
+                    setRectangles(rects);
+                  }}
+                />
+              );
+            }
+          })} */}
 
           {rectangles?.map((rect, i) => (
-            <Rectangle
-              key={i}
+            <RectangleComponent
+              key={rect.shapeId + i}
               shapeProps={rect}
               isSelected={rect.id === selectedId}
               onSelect={() => {
@@ -367,6 +384,10 @@ const ReactKonva = ({ selectedTool, boardId }) => {
               }}
             />
           ))}
+
+          {Object.keys(shapePreviews).length > 0 && (
+            <ShapePreview shapePreviews={shapePreviews} />
+          )}
         </Layer>
       </Stage>
       <button onClick={() => setPenColor("blue")}>Blue</button>

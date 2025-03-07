@@ -1,7 +1,7 @@
-import React from "react";
+import React, { memo } from "react";
 import { Line, Rect } from "react-konva";
 
-const ShapePreview = ({ shapePreviews }) => {
+const ShapePreview = memo(({ shapePreviews }) => {
   return (
     <>
       {Object.entries(shapePreviews).map(([id, shapeData]) => {
@@ -21,6 +21,6 @@ const ShapePreview = ({ shapePreviews }) => {
       })}
     </>
   );
-};
+});
 
 export default ShapePreview;
