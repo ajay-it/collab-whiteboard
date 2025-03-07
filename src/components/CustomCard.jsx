@@ -27,7 +27,14 @@ const CustomCard = ({ item, value, setValue }) => {
             }}
           >
             {item.type === "strokeWidth" && (
-              <Box className={`h-[${prop}px] rounded w-3 bg-black`}></Box>
+              <Box
+                sx={{
+                  height: `${prop}px`,
+                  width: "12px",
+                  background: "black",
+                  borderRadius: "4px",
+                }}
+              ></Box>
             )}
           </ListItem>
         ))}

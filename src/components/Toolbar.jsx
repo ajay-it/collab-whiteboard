@@ -18,6 +18,7 @@ const Toolbar = ({
           <Button
             key={tool.name}
             sx={{
+              color: "black",
               minWidth: 0,
               backgroundColor:
                 selectedTool === tool.name ? "#ADD8E6" : "transparent",
