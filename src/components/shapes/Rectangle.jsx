@@ -42,7 +42,7 @@ const Rectangle = ({ shapeProps, isSelected, onSelect, onChange }) => {
   };
 
   useEffect(() => {
-    console.log("🚀 ~ useEffect ~ rectRef.current:", rectRef.current);
+    // console.log("🚀 ~ useEffect ~ rectRef.current:", rectRef.current);
     if (isSelected && rectRef.current && trRef.current) {
       // we need to attach transformer manually
       trRef.current.nodes([rectRef.current]);
@@ -60,8 +60,7 @@ const Rectangle = ({ shapeProps, isSelected, onSelect, onChange }) => {
         onClick={onSelect}
         onTap={onSelect}
         // ref={rectRef}
-        {...shapeProps}
-        draggable
+        {...shapeProps.attrs}
         onDragEnd={handleDrag}
         onTransformEnd={handleTransform}
       />
