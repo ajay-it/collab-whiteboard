@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { Stage, Layer, Rect, Transformer, Line } from "react-konva";
+import { Stage, Layer } from "react-konva";
 import socket from "../socket";
 import { EVENTS } from "../utils/constants";
 import { v4 as uuidv4 } from "uuid";
@@ -7,13 +7,13 @@ import RectangleComponent from "./shapes/RectangleComponent";
 import ShapePreview from "./ShapePreview";
 import LineComponent from "./shapes/LineComponent";
 
-const ReactKonva = ({ selectedTool, boardId }) => {
+const ReactKonva = ({ selectedTool, boardId, stroke, strokeWidth }) => {
   const [lines, setLines] = useState([]);
   const [rectangles, setRectangles] = useState([]);
 
   const [selectedId, setSelectedId] = useState(null);
   const [isDrawing, setIsDrawing] = useState(false);
-  const [penColor, setPenColor] = useState("black");
+  // const [penColor, setPenColor] = useState("black");
   // const [cursorPosition, setCursorPosition] = useState();
   // const [shapeId, setShapeId] = useState();
   const [startPos, setStartPos] = useState(null);
@@ -43,8 +43,8 @@ const ReactKonva = ({ selectedTool, boardId }) => {
         shapeId: shapeIdRef.current,
         attrs: {
           points: [pos.x, pos.y],
-          stroke: penColor,
-          strokeWidth: 5,
+          stroke: stroke,
+          strokeWidth: strokeWidth,
           globalCompositeOperation:
             selectedTool === "eraser" ? "destination-out" : "source-over",
         },
@@ -69,8 +69,8 @@ const ReactKonva = ({ selectedTool, boardId }) => {
           width: 0,
           x: pos.x,
           y: pos.y,
-          stroke: "black",
-          strokeWidth: 5,
+          stroke: stroke,
+          strokeWidth: strokeWidth,
           cornerRadius: 5,
         },
         className: "Rect",
@@ -203,7 +203,7 @@ const ReactKonva = ({ selectedTool, boardId }) => {
   };
 
   const handleLoadStage = (data) => {
-    //TODO: handle for all the shapes
+    // handle for all the shapes
     data.shapes.map((shape) => {
       if (shape.className === "Line") {
         setLines((prevLines) => [...prevLines, shape]);
@@ -323,11 +323,11 @@ const ReactKonva = ({ selectedTool, boardId }) => {
     }
   }, [boardId]);
 
-  // const sortedShapes = useMemo(() => {
-  //   return [...lines, ...rectangles]
-  //     .slice()
-  //     .sort((a, b) => a.createdAt.localeCompare(b.createdAt));
-  // }, [lines, rectangles]);
+  const sortedShapes = useMemo(() => {
+    return [...lines, ...rectangles]
+      .slice()
+      .sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+  }, [lines, rectangles]);
 
   return (
     <>
@@ -335,20 +335,15 @@ const ReactKonva = ({ selectedTool, boardId }) => {
         ref={stageRef}
         width={1000}
         height={1000}
-        className="border border-red-500 m-auto w-fit"
+        className="border border-red-500 m-auto w-full"
         onMouseDown={handleMouseDown}
         onTouchStart={handleMouseDown}
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
       >
         <Layer>
-          {lines?.map((line, i) => (
-            <LineComponent key={line.shapeId + i} line={line} />
-          ))}
-
-          {/* {sortedShapes?.map((shape, i) => {
+          {sortedShapes?.map((shape, i) => {
             if (shape.className === "Line") {
-              console.log("sdflie", shape);
               return <LineComponent key={shape.shapeId + i} line={shape} />;
             } else if (shape.className === "Rect") {
               return (
@@ -367,32 +362,13 @@ const ReactKonva = ({ selectedTool, boardId }) => {
                 />
               );
             }
-          })} */}
-
-          {rectangles?.map((rect, i) => (
-            <RectangleComponent
-              key={rect.shapeId + i}
-              shapeProps={rect}
-              isSelected={rect.id === selectedId}
-              onSelect={() => {
-                setSelectedId(rect.id);
-              }}
-              onChange={(newAttrs) => {
-                const rects = rectangles.slice();
-                rects[i] = newAttrs;
-                setRectangles(rects);
-              }}
-            />
-          ))}
+          })}
 
           {Object.keys(shapePreviews).length > 0 && (
             <ShapePreview shapePreviews={shapePreviews} />
           )}
         </Layer>
       </Stage>
-      <button onClick={() => setPenColor("blue")}>Blue</button>
-      <button onClick={() => setPenColor("red")}>Red</button>
-      <button onClick={() => setPenColor("black")}>Black</button>
     </>
   );
 };

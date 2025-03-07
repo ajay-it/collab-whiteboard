@@ -10,7 +10,7 @@ const RectangleComponent = memo(
       if (e.type === "transformend") {
         // transformer is changing scale of the node
         // and NOT its width or height
-        // but in the store we have only width and height
+        // but in the state we have only width and height
         // to match the data better we will reset scale on transform end
         const node = rectRef.current;
         if (!node) return;
@@ -43,7 +43,6 @@ const RectangleComponent = memo(
     };
 
     useEffect(() => {
-      // console.log("🚀 ~ useEffect ~ rectRef.current:", rectRef.current);
       if (isSelected && rectRef.current && trRef.current) {
         // we need to attach transformer manually
         trRef.current.nodes([rectRef.current]);

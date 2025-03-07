@@ -5,15 +5,27 @@ import { useParams } from "react-router-dom";
 
 const BoardPage = () => {
   const [selectedTool, setSelectedTool] = useState("");
-  const { id: boardId } = useParams();
-  console.log("🚀 ~ BoardPage ~ id:", boardId);
+  const [stroke, setStroke] = useState("black");
+  const [strokeWidth, setStrokeWidth] = useState(2);
 
-  useEffect(() => {});
+  const { id: boardId } = useParams();
 
   return (
     <>
-      <Toolbar selectedTool={selectedTool} setSelectedTool={setSelectedTool} />
-      <ReactKonva selectedTool={selectedTool} boardId={boardId} />
+      <Toolbar
+        selectedTool={selectedTool}
+        setSelectedTool={setSelectedTool}
+        stroke={stroke}
+        setStroke={setStroke}
+        strokeWidth={strokeWidth}
+        setStrokeWidth={setStrokeWidth}
+      />
+      <ReactKonva
+        selectedTool={selectedTool}
+        boardId={boardId}
+        stroke={stroke}
+        strokeWidth={strokeWidth}
+      />
     </>
   );
 };
