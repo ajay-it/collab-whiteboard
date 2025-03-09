@@ -5,11 +5,14 @@ export const handleLoadStage = (
   // handle for all the shapes
   data.shapes.map((shape) => {
     if (shape.className === "Line") {
-      setLines((prevLines) => [...prevLines, shape]);
+      setLines((prevLines) => ({
+        ...prevLines,
+        [shape.shapeId]: shape,
+      }));
     } else if (shape.className === "Rect") {
-      setRectangles((prevRects) => [...prevRects, shape]);
+      setRectangles((prevRects) => ({ ...prevRects, [shape.shapeId]: shape }));
     } else if (shape.className === "Circle") {
-      setCircles((prevCircles) => [...prevCircles, shape]);
+      setCircles((prevCircles) => ({ ...prevCircles, [shape.shapeId]: shape }));
     }
   });
 };
@@ -22,13 +25,22 @@ export const handleCreateShape = (
 
   if (initialData.className === "Line") {
     setShapePreviews((prev) => ({ ...prev, [senderId]: initialData }));
-    setLines((prevLines) => [...prevLines, initialData]);
+    setLines((prevLines) => ({
+      ...prevLines,
+      [initialData.shapeId]: initialData,
+    }));
   } else if (initialData.className === "Rect") {
     setShapePreviews((prev) => ({ ...prev, [senderId]: initialData }));
-    setRectangles((prevRect) => [...prevRect, initialData]);
+    setRectangles((prevRect) => ({
+      ...prevRect,
+      [initialData.shapeId]: initialData,
+    }));
   } else if (initialData.className === "Circle") {
     setShapePreviews((prev) => ({ ...prev, [senderId]: initialData }));
-    setCircles((prevCircles) => [...prevCircles, initialData]);
+    setCircles((prevCircles) => ({
+      ...prevCircles,
+      [initialData.shapeId]: initialData,
+    }));
   }
 };
 
@@ -103,34 +115,47 @@ export const handleSaveShape = (
   { setShapePreviews, setLines, setRectangles, setCircles }
 ) => {
   const { senderId, data: saveData } = data;
+  const { shapeId } = saveData;
 
   if (saveData.className === "Line") {
-    setLines((prevLines) => {
-      const newLines = [...prevLines];
-      const lastLine = newLines[newLines.length - 1];
-      lastLine.attrs.points = saveData.attrs.points;
-      return newLines;
-    });
+    setLines((prevLines) => ({
+      ...prevLines,
+      [shapeId]: {
+        ...prevLines[shapeId],
+        attrs: {
+          ...prevLines[shapeId].attrs,
+          points: saveData.attrs.points,
+        },
+      },
+    }));
   } else if (saveData.className === "Rect") {
-    setRectangles((prevRects) => {
-      const newRects = [...prevRects];
-      const lastRect = newRects[newRects.length - 1];
-      lastRect.attrs.width = saveData.attrs.width;
-      lastRect.attrs.height = saveData.attrs.height;
-      lastRect.attrs.x = saveData.attrs.x;
-      lastRect.attrs.y = saveData.attrs.y;
-      return newRects;
-    });
+    setRectangles((prevRects) => ({
+      ...prevRects,
+      [shapeId]: {
+        ...prevRects[shapeId],
+        attrs: {
+          ...prevRects[shapeId].attrs,
+          width: saveData.attrs.width,
+          height: saveData.attrs.height,
+          x: saveData.attrs.x,
+          y: saveData.attrs.y,
+        },
+      },
+    }));
   } else if (saveData.className === "Circle") {
-    setCircles((prevCircles) => {
-      const newCircles = [...prevCircles];
-      const lastCircle = newCircles[newCircles.length - 1];
-      lastCircle.attrs.x = saveData.attrs.x;
-      lastCircle.attrs.y = saveData.attrs.y;
-      lastCircle.attrs.radiusX = saveData.attrs.radiusX;
-      lastCircle.attrs.radiusY = saveData.attrs.radiusY;
-      return newCircles;
-    });
+    setCircles((prevCircles) => ({
+      ...prevCircles,
+      [shapeId]: {
+        ...prevCircles[shapeId],
+        attrs: {
+          ...prevCircles[shapeId].attrs,
+          x: saveData.attrs.x,
+          y: saveData.attrs.y,
+          radiusX: saveData.attrs.radiusX,
+          radiusY: saveData.attrs.radiusY,
+        },
+      },
+    }));
   }
 
   setShapePreviews((prev) => {

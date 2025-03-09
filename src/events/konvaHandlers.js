@@ -54,7 +54,10 @@ export const handleDrawingStart = (
 
     setShapePreviews((prev) => ({ ...prev, [socket.id]: initialData }));
 
-    setLines((prevLines) => [...prevLines, initialData]);
+    setLines((prevLines) => ({
+      ...prevLines,
+      [initialData.shapeId]: initialData,
+    }));
   } else if (selectedTool === "rect") {
     setStartPos(pos);
     initialData = {
@@ -76,7 +79,10 @@ export const handleDrawingStart = (
     };
 
     setShapePreviews((prev) => ({ ...prev, [socket.id]: initialData }));
-    setRectangles((prevRect) => [...prevRect, initialData]);
+    setRectangles((prevRect) => ({
+      ...prevRect,
+      [initialData.shapeId]: initialData,
+    }));
   } else if (selectedTool === "circle") {
     setStartPos(pos);
     initialData = {
@@ -96,7 +102,10 @@ export const handleDrawingStart = (
       createdAt: new Date().toISOString(),
     };
     setShapePreviews((prev) => ({ ...prev, [socket.id]: initialData }));
-    setCircles((prevRect) => [...prevRect, initialData]);
+    setCircles((prevRect) => ({
+      ...prevRect,
+      [initialData.shapeId]: initialData,
+    }));
   }
 
   socket.emit(EVENTS.SHAPE.CREATE, { senderId: socket.id, initialData });
@@ -209,6 +218,7 @@ export const handleDrawingUpdate = (
 };
 
 export const handleDrawingComplete = ({
+  shapeIdRef,
   selectedTool,
   shapePreviews,
   setIsDrawing,
@@ -224,51 +234,47 @@ export const handleDrawingComplete = ({
 
   setIsDrawing(false);
 
+  const shapeId = shapeIdRef.current;
+
   if (selectedTool === "pen" || selectedTool === "eraser") {
-    setLines((prevLines) => {
-      const newLines = [...prevLines];
-      const lastIndex = newLines.length - 1;
-      newLines[lastIndex] = {
-        ...newLines[lastIndex],
+    setLines((prevLines) => ({
+      ...prevLines,
+      [shapeId]: {
+        ...prevLines[shapeId],
         attrs: {
-          ...newLines[lastIndex].attrs,
+          ...prevLines[shapeId].attrs,
           points: shapePreviews[socket.id].attrs.points,
         },
-      };
-      return newLines;
-    });
+      },
+    }));
   } else if (selectedTool === "rect") {
-    setRectangles((prevRects) => {
-      const newRects = [...prevRects];
-      const lastIndex = newRects.length - 1;
-      newRects[lastIndex] = {
-        ...newRects[lastIndex],
+    setRectangles((prevRects) => ({
+      ...prevRects,
+      [shapeId]: {
+        ...prevRects[shapeId],
         attrs: {
-          ...newRects[lastIndex].attrs,
+          ...prevRects[shapeId].attrs,
           x: shapePreviews[socket.id].attrs.x,
           y: shapePreviews[socket.id].attrs.y,
           width: shapePreviews[socket.id].attrs.width,
           height: shapePreviews[socket.id].attrs.height,
         },
-      };
-      return newRects;
-    });
+      },
+    }));
   } else if (selectedTool === "circle") {
-    setCircles((prevCircles) => {
-      const newCircles = [...prevCircles];
-      const lastIndex = newCircles.length - 1;
-      newCircles[lastIndex] = {
-        ...newCircles[lastIndex],
+    setCircles((prevCircles) => ({
+      ...prevCircles,
+      [shapeId]: {
+        ...prevCircles[shapeId],
         attrs: {
-          ...newCircles[lastIndex].attrs,
+          ...prevCircles[shapeId].attrs,
           x: shapePreviews[socket.id].attrs.x,
           y: shapePreviews[socket.id].attrs.y,
           radiusX: shapePreviews[socket.id].attrs.radiusX,
           radiusY: shapePreviews[socket.id].attrs.radiusY,
         },
-      };
-      return newCircles;
-    });
+      },
+    }));
   }
 
   setShapePreviews((prev) => {

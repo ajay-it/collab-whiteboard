@@ -26,9 +26,9 @@ const ReactKonva = ({
   strokeWidth,
   fillColor,
 }) => {
-  const [lines, setLines] = useState([]);
-  const [rectangles, setRectangles] = useState([]);
-  const [circles, setCircles] = useState([]);
+  const [lines, setLines] = useState({});
+  const [rectangles, setRectangles] = useState({});
+  const [circles, setCircles] = useState({});
 
   const [selectedId, setSelectedId] = useState(null);
   const [isDrawing, setIsDrawing] = useState(false);
@@ -73,6 +73,7 @@ const ReactKonva = ({
 
   const handleMouseUp = () => {
     handleDrawingComplete({
+      shapeIdRef,
       selectedTool,
       shapePreviews,
       setIsDrawing,
@@ -131,7 +132,11 @@ const ReactKonva = ({
   }, [boardId]);
 
   const sortedShapes = useMemo(() => {
-    return [...lines, ...rectangles, ...circles]
+    return [
+      ...Object.values(lines),
+      ...Object.values(rectangles),
+      ...Object.values(circles),
+    ]
       .slice()
       .sort((a, b) => a.createdAt.localeCompare(b.createdAt));
   }, [lines, rectangles, circles]);
