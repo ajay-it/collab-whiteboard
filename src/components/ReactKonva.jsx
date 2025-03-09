@@ -6,6 +6,18 @@ import { v4 as uuidv4 } from "uuid";
 import RectangleComponent from "./shapes/RectangleComponent";
 import ShapePreview from "./ShapePreview";
 import LineComponent from "./shapes/LineComponent";
+import CircleComponent from "./shapes/CircleComponent";
+import {
+  handleCreateShape,
+  handleDrawShape,
+  handleLoadStage,
+  handleSaveShape,
+} from "../events/socketHandlers";
+import {
+  handleDrawingComplete,
+  handleDrawingStart,
+  handleDrawingUpdate,
+} from "../events/konvaHandlers";
 
 const ReactKonva = ({
   selectedTool,
@@ -30,273 +42,41 @@ const ReactKonva = ({
   const shapeIdRef = useRef(null);
 
   const handleMouseDown = (e) => {
-    if (e.target === e.target.getStage()) {
-      setSelectedId(null);
-    }
-
-    if (!selectedTool) {
-      return;
-    }
-
-    shapeIdRef.current = uuidv4();
-
-    setIsDrawing(true);
-    const pos = e.target.getStage().getPointerPosition();
-
-    if (selectedTool === "pen" || selectedTool === "eraser") {
-      const initialData = {
-        boardId,
-        shapeId: shapeIdRef.current,
-        attrs: {
-          points: [pos.x, pos.y],
-          stroke: stroke,
-          strokeWidth: strokeWidth,
-          globalCompositeOperation:
-            selectedTool === "eraser" ? "destination-out" : "source-over",
-        },
-        className: "Line",
-        tool: selectedTool,
-        createdAt: new Date().toISOString(),
-      };
-
-      setShapePreviews((prev) => ({ ...prev, [socket.id]: initialData }));
-
-      setLines((prevLines) => [...prevLines, initialData]);
-
-      socket.emit(EVENTS.SHAPE.CREATE, { senderId: socket.id, initialData });
-    } else if (selectedTool === "rect") {
-      setStartPos(pos);
-      const initialData = {
-        boardId,
-        shapeId: shapeIdRef.current,
-        attrs: {
-          fill: fillColor,
-          height: 0,
-          width: 0,
-          x: pos.x,
-          y: pos.y,
-          stroke: stroke,
-          strokeWidth: strokeWidth,
-          cornerRadius: 5,
-        },
-        className: "Rect",
-        tool: selectedTool,
-        createdAt: new Date().toISOString(),
-      };
-
-      setShapePreviews((prev) => ({ ...prev, [socket.id]: initialData }));
-      setRectangles((prevRect) => [...prevRect, initialData]);
-
-      socket.emit(EVENTS.SHAPE.CREATE, { senderId: socket.id, initialData });
-    }
+    handleDrawingStart(e, {
+      boardId,
+      selectedTool,
+      setSelectedId,
+      setIsDrawing,
+      shapeIdRef,
+      setShapePreviews,
+      setLines,
+      setRectangles,
+      setStartPos,
+      stroke,
+      strokeWidth,
+      fillColor,
+    });
   };
 
   const handleMouseMove = (e) => {
-    // no drawing - skip
-    if (!isDrawing) {
-      return;
-    }
-
-    const stage = e.target.getStage();
-    const pos = stage.getPointerPosition();
-
-    if (selectedTool === "pen" || selectedTool === "eraser") {
-      setShapePreviews((prev) => {
-        const preview = prev[socket.id];
-        if (preview) {
-          return {
-            ...prev,
-            [socket.id]: {
-              ...preview,
-              attrs: {
-                ...preview.attrs,
-                points: [...preview.attrs.points, pos.x, pos.y],
-              },
-            },
-          };
-        }
-        return prev;
-      });
-
-      const updatedData = {
-        boardId,
-        shapeId: shapeIdRef.current,
-        className: "Line",
-        points: [pos.x, pos.y],
-      };
-
-      socket.emit(EVENTS.SHAPE.DRAW, { senderId: socket.id, updatedData });
-    } else if (selectedTool === "rect") {
-      setShapePreviews((prev) => {
-        const preview = prev[socket.id];
-        if (preview) {
-          return {
-            ...prev,
-            [socket.id]: {
-              ...preview,
-              attrs: {
-                ...preview.attrs,
-                x: Math.min(pos.x, startPos.x),
-                y: Math.min(pos.y, startPos.y),
-                width: Math.abs(pos.x - startPos.x),
-                height: Math.abs(pos.y - startPos.y),
-              },
-            },
-          };
-        }
-        return prev;
-      });
-      const updatedData = {
-        boardId,
-        shapeId: shapeIdRef.current,
-        className: "Rect",
-        x: Math.min(pos.x, startPos.x),
-        y: Math.min(pos.y, startPos.y),
-        width: Math.abs(pos.x - startPos.x),
-        height: Math.abs(pos.y - startPos.y),
-      };
-      socket.emit(EVENTS.SHAPE.DRAW, { senderId: socket.id, updatedData });
-    }
+    handleDrawingUpdate(e, {
+      boardId,
+      shapeIdRef,
+      startPos,
+      isDrawing,
+      selectedTool,
+      setShapePreviews,
+    });
   };
-
-  // useEffect(() => {
-  //   console.log("shapePreview", shapePreviews);
-  // }, [shapePreviews]);
 
   const handleMouseUp = () => {
-    socket.emit(EVENTS.SHAPE.SAVE, {
-      senderId: socket.id,
-      data: shapePreviews[socket.id],
-    });
-
-    setIsDrawing(false);
-
-    if (selectedTool === "pen" || selectedTool === "eraser") {
-      setLines((prevLines) => {
-        const newLines = [...prevLines];
-        const lastIndex = newLines.length - 1;
-        newLines[lastIndex] = {
-          ...newLines[lastIndex],
-          attrs: {
-            ...newLines[lastIndex].attrs,
-            points: shapePreviews[socket.id].attrs.points,
-          },
-        };
-        return newLines;
-      });
-    } else if (selectedTool === "rect") {
-      setRectangles((prevRects) => {
-        const newRects = [...prevRects];
-        const lastIndex = newRects.length - 1;
-        newRects[lastIndex] = {
-          ...newRects[lastIndex],
-          attrs: {
-            ...newRects[lastIndex].attrs,
-            x: shapePreviews[socket.id].attrs.x,
-            y: shapePreviews[socket.id].attrs.y,
-            width: shapePreviews[socket.id].attrs.width,
-            height: shapePreviews[socket.id].attrs.height,
-          },
-        };
-        return newRects;
-      });
-    }
-
-    setShapePreviews((prev) => {
-      const { [socket.id]: _, ...remainingPreviews } = prev;
-      return remainingPreviews;
-    });
-  };
-
-  const handleLoadStage = (data) => {
-    // handle for all the shapes
-    data.shapes.map((shape) => {
-      if (shape.className === "Line") {
-        setLines((prevLines) => [...prevLines, shape]);
-      } else if (shape.className === "Rect") {
-        setRectangles((prevRects) => [...prevRects, shape]);
-      }
-    });
-  };
-
-  const handleCreateShape = ({ senderId, initialData }) => {
-    if (initialData.className === "Line") {
-      setShapePreviews((prev) => ({ ...prev, [senderId]: initialData }));
-
-      setLines((prevLines) => [...prevLines, initialData]);
-    } else if (initialData.className === "Rect") {
-      setShapePreviews((prev) => ({ ...prev, [senderId]: initialData }));
-
-      setRectangles((prevRect) => [...prevRect, initialData]);
-    }
-  };
-
-  const handleDrawShape = ({ senderId, updatedData }) => {
-    if (updatedData.className === "Line") {
-      setShapePreviews((prev) => {
-        const preview = prev[senderId];
-        if (preview) {
-          return {
-            ...prev,
-            [senderId]: {
-              ...preview,
-              attrs: {
-                ...preview.attrs,
-                points: [
-                  ...preview.attrs.points,
-                  updatedData.points[0],
-                  updatedData.points[1],
-                ],
-              },
-            },
-          };
-        }
-      });
-    } else if (updatedData.className === "Rect") {
-      setShapePreviews((prev) => {
-        const preview = prev[senderId];
-        if (preview) {
-          return {
-            ...prev,
-            [senderId]: {
-              ...preview,
-              attrs: {
-                ...preview.attrs,
-                x: updatedData.x,
-                y: updatedData.y,
-                width: updatedData.width,
-                height: updatedData.height,
-              },
-            },
-          };
-        }
-        return prev;
-      });
-    }
-  };
-
-  const handleSaveShape = ({ senderId, data }) => {
-    if (data.className === "Line") {
-      setLines((prevLines) => {
-        const newLines = [...prevLines];
-        const lastLine = newLines[newLines.length - 1];
-        lastLine.attrs.points = data.attrs.points;
-        return newLines;
-      });
-    } else if (data.className === "Rect") {
-      setRectangles((prevRects) => {
-        const newRects = [...prevRects];
-        const lastRect = newRects[newRects.length - 1];
-        lastRect.attrs.width = data.attrs.width;
-        lastRect.attrs.height = data.attrs.height;
-        lastRect.attrs.x = data.attrs.x;
-        lastRect.attrs.y = data.attrs.y;
-        return newRects;
-      });
-    }
-    setShapePreviews((prev) => {
-      const { [senderId]: _, ...remainingPreviews } = prev;
-      return remainingPreviews;
+    handleDrawingComplete({
+      selectedTool,
+      shapePreviews,
+      setIsDrawing,
+      setLines,
+      setRectangles,
+      setShapePreviews,
     });
   };
 
@@ -315,10 +95,18 @@ const ReactKonva = ({
         onContentReady();
       }, 500);
 
-      socket.on(EVENTS.BOARD.LOAD, handleLoadStage);
-      socket.on(EVENTS.SHAPE.CREATE, handleCreateShape);
-      socket.on(EVENTS.SHAPE.DRAW, handleDrawShape);
-      socket.on(EVENTS.SHAPE.SAVE, handleSaveShape);
+      socket.on(EVENTS.BOARD.LOAD, (data) =>
+        handleLoadStage(data, { setLines, setRectangles })
+      );
+      socket.on(EVENTS.SHAPE.CREATE, (data) =>
+        handleCreateShape(data, { setShapePreviews, setLines, setRectangles })
+      );
+      socket.on(EVENTS.SHAPE.DRAW, (data) =>
+        handleDrawShape(data, { setShapePreviews })
+      );
+      socket.on(EVENTS.SHAPE.SAVE, (data) =>
+        handleSaveShape(data, { setShapePreviews, setLines, setRectangles })
+      );
 
       return () => {
         socket.off(EVENTS.BOARD.LOAD);
@@ -368,6 +156,10 @@ const ReactKonva = ({
                     setRectangles(rects);
                   }}
                 />
+              );
+            } else if (shape.className === "Circle") {
+              return (
+                <CircleComponent key={shape.shapeId + i} shapeProps={shape} />
               );
             }
           })}
