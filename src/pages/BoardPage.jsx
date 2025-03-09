@@ -7,6 +7,7 @@ const BoardPage = () => {
   const [selectedTool, setSelectedTool] = useState("");
   const [stroke, setStroke] = useState("black");
   const [strokeWidth, setStrokeWidth] = useState(2);
+  const [fillColor, setFillColor] = useState("");
 
   const { id: boardId } = useParams();
 
@@ -19,12 +20,15 @@ const BoardPage = () => {
         setStroke={setStroke}
         strokeWidth={strokeWidth}
         setStrokeWidth={setStrokeWidth}
+        fillColor={fillColor}
+        setFillColor={setFillColor}
       />
       <ReactKonva
         selectedTool={selectedTool}
         boardId={boardId}
         stroke={stroke}
         strokeWidth={strokeWidth}
+        fillColor={fillColor}
       />
     </>
   );

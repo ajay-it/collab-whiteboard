@@ -7,7 +7,13 @@ import RectangleComponent from "./shapes/RectangleComponent";
 import ShapePreview from "./ShapePreview";
 import LineComponent from "./shapes/LineComponent";
 
-const ReactKonva = ({ selectedTool, boardId, stroke, strokeWidth }) => {
+const ReactKonva = ({
+  selectedTool,
+  boardId,
+  stroke,
+  strokeWidth,
+  fillColor,
+}) => {
   const [lines, setLines] = useState([]);
   const [rectangles, setRectangles] = useState([]);
 
@@ -64,7 +70,7 @@ const ReactKonva = ({ selectedTool, boardId, stroke, strokeWidth }) => {
         boardId,
         shapeId: shapeIdRef.current,
         attrs: {
-          fill: "",
+          fill: fillColor,
           height: 0,
           width: 0,
           x: pos.x,
@@ -339,7 +345,9 @@ const ReactKonva = ({ selectedTool, boardId, stroke, strokeWidth }) => {
         onMouseDown={handleMouseDown}
         onTouchStart={handleMouseDown}
         onMouseMove={handleMouseMove}
+        onTouchMove={handleMouseMove}
         onMouseUp={handleMouseUp}
+        onTouchEnd={handleMouseUp}
       >
         <Layer>
           {sortedShapes?.map((shape, i) => {

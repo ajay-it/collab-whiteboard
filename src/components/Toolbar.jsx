@@ -1,5 +1,10 @@
 import React from "react";
-import { tools } from "../utils/constants";
+import {
+  tools,
+  strokeOption,
+  strokeWidthOption,
+  fillColorOption,
+} from "../utils/constants";
 import { Box, Button } from "@mui/material";
 import CustomCard from "./CustomCard";
 
@@ -10,6 +15,8 @@ const Toolbar = ({
   setStroke,
   strokeWidth,
   setStrokeWidth,
+  fillColor,
+  setFillColor,
 }) => {
   return (
     <>
@@ -32,24 +39,17 @@ const Toolbar = ({
           </Button>
         ))}
       </Box>
-      <Box className="w-36 fixed h-60 drop-shadow-lg bg-white rounded top-36 ml-4 z-20 p-2 flex flex-col gap-2">
+      <Box className="w-[132px] fixed h-60 drop-shadow-lg bg-white rounded top-36 ml-4 z-20 p-2 flex flex-col gap-2">
+        <CustomCard item={strokeOption} value={stroke} setValue={setStroke} />
         <CustomCard
-          item={{
-            type: "stroke",
-            name: "Stroke",
-            properties: ["black", "red", "blue", "green", "orange"],
-          }}
-          value={stroke}
-          setValue={setStroke}
-        />
-        <CustomCard
-          item={{
-            type: "strokeWidth",
-            name: "Stroke Width",
-            properties: [2, 3, 4],
-          }}
+          item={strokeWidthOption}
           value={strokeWidth}
           setValue={setStrokeWidth}
+        />
+        <CustomCard
+          item={fillColorOption}
+          value={fillColor}
+          setValue={setFillColor}
         />
       </Box>
     </>

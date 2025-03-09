@@ -23,3 +23,21 @@ export const EVENTS = {
     DELETE: "shape.delete",
   },
 };
+
+export const strokeOption = {
+  type: "stroke",
+  name: "Stroke",
+  properties: ["black", "red", "blue", "green", "orange"],
+};
+
+export const strokeWidthOption = {
+  type: "strokeWidth",
+  name: "Stroke Width",
+  properties: [2, 3, 4],
+};
+
+export const fillColorOption = {
+  type: "fillColor",
+  name: "Fill Color",
+  properties: ["", "black", "red", "blue", "green", "orange"],
+};
