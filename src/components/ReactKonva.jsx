@@ -1,12 +1,12 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Stage, Layer } from "react-konva";
-import socket from "../socket";
+
 import { EVENTS } from "../utils/constants";
-import { v4 as uuidv4 } from "uuid";
 import RectangleComponent from "./shapes/RectangleComponent";
 import ShapePreview from "./ShapePreview";
 import LineComponent from "./shapes/LineComponent";
 import CircleComponent from "./shapes/CircleComponent";
+import socket from "../socket";
 import {
   handleCreateShape,
   handleDrawShape,
@@ -28,6 +28,7 @@ const ReactKonva = ({
 }) => {
   const [lines, setLines] = useState([]);
   const [rectangles, setRectangles] = useState([]);
+  const [circles, setCircles] = useState([]);
 
   const [selectedId, setSelectedId] = useState(null);
   const [isDrawing, setIsDrawing] = useState(false);
@@ -44,17 +45,18 @@ const ReactKonva = ({
   const handleMouseDown = (e) => {
     handleDrawingStart(e, {
       boardId,
-      selectedTool,
-      setSelectedId,
-      setIsDrawing,
       shapeIdRef,
-      setShapePreviews,
-      setLines,
-      setRectangles,
-      setStartPos,
+      selectedTool,
       stroke,
       strokeWidth,
       fillColor,
+      setSelectedId,
+      setIsDrawing,
+      setStartPos,
+      setShapePreviews,
+      setLines,
+      setRectangles,
+      setCircles,
     });
   };
 
@@ -77,6 +79,7 @@ const ReactKonva = ({
       setLines,
       setRectangles,
       setShapePreviews,
+      setCircles,
     });
   };
 
@@ -96,16 +99,26 @@ const ReactKonva = ({
       }, 500);
 
       socket.on(EVENTS.BOARD.LOAD, (data) =>
-        handleLoadStage(data, { setLines, setRectangles })
+        handleLoadStage(data, { setLines, setRectangles, setCircles })
       );
       socket.on(EVENTS.SHAPE.CREATE, (data) =>
-        handleCreateShape(data, { setShapePreviews, setLines, setRectangles })
+        handleCreateShape(data, {
+          setShapePreviews,
+          setLines,
+          setRectangles,
+          setCircles,
+        })
       );
       socket.on(EVENTS.SHAPE.DRAW, (data) =>
         handleDrawShape(data, { setShapePreviews })
       );
       socket.on(EVENTS.SHAPE.SAVE, (data) =>
-        handleSaveShape(data, { setShapePreviews, setLines, setRectangles })
+        handleSaveShape(data, {
+          setShapePreviews,
+          setLines,
+          setRectangles,
+          setCircles,
+        })
       );
 
       return () => {
@@ -118,10 +131,10 @@ const ReactKonva = ({
   }, [boardId]);
 
   const sortedShapes = useMemo(() => {
-    return [...lines, ...rectangles]
+    return [...lines, ...rectangles, ...circles]
       .slice()
       .sort((a, b) => a.createdAt.localeCompare(b.createdAt));
-  }, [lines, rectangles]);
+  }, [lines, rectangles, circles]);
 
   return (
     <>

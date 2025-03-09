@@ -1,13 +1,8 @@
 import React from "react";
-import { Circle } from "react-konva";
+import { Ellipse } from "react-konva";
 
 const CircleComponent = ({ shapeProps }) => {
-  return (
-    <Circle
-      // ref={rectRef}
-      {...shapeProps.attrs}
-    />
-  );
+  return <Ellipse {...shapeProps.attrs} />;
 };
 
 export default CircleComponent;

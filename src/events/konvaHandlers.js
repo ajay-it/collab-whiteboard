@@ -1,22 +1,24 @@
 import { v4 as uuidv4 } from "uuid";
+
 import { EVENTS } from "../utils/constants";
 import socket from "../socket";
 
 export const handleDrawingStart = (
   e,
   {
-    selectedTool,
-    setSelectedId,
-    setIsDrawing,
     boardId,
     shapeIdRef,
-    setShapePreviews,
-    setLines,
-    setRectangles,
-    setStartPos,
+    selectedTool,
     stroke,
     strokeWidth,
     fillColor,
+    setSelectedId,
+    setIsDrawing,
+    setStartPos,
+    setShapePreviews,
+    setLines,
+    setRectangles,
+    setCircles,
   }
 ) => {
   if (e.target === e.target.getStage()) {
@@ -32,8 +34,10 @@ export const handleDrawingStart = (
   setIsDrawing(true);
   const pos = e.target.getStage().getPointerPosition();
 
+  let initialData = {};
+
   if (selectedTool === "pen" || selectedTool === "eraser") {
-    const initialData = {
+    initialData = {
       boardId,
       shapeId: shapeIdRef.current,
       attrs: {
@@ -51,11 +55,9 @@ export const handleDrawingStart = (
     setShapePreviews((prev) => ({ ...prev, [socket.id]: initialData }));
 
     setLines((prevLines) => [...prevLines, initialData]);
-
-    socket.emit(EVENTS.SHAPE.CREATE, { senderId: socket.id, initialData });
   } else if (selectedTool === "rect") {
     setStartPos(pos);
-    const initialData = {
+    initialData = {
       boardId,
       shapeId: shapeIdRef.current,
       attrs: {
@@ -75,9 +77,29 @@ export const handleDrawingStart = (
 
     setShapePreviews((prev) => ({ ...prev, [socket.id]: initialData }));
     setRectangles((prevRect) => [...prevRect, initialData]);
-
-    socket.emit(EVENTS.SHAPE.CREATE, { senderId: socket.id, initialData });
+  } else if (selectedTool === "circle") {
+    setStartPos(pos);
+    initialData = {
+      boardId,
+      shapeId: shapeIdRef.current,
+      attrs: {
+        fill: fillColor,
+        x: pos.x,
+        y: pos.y,
+        radiusX: 0,
+        radiusY: 0,
+        stroke: stroke,
+        strokeWidth: strokeWidth,
+      },
+      className: "Circle",
+      tool: selectedTool,
+      createdAt: new Date().toISOString(),
+    };
+    setShapePreviews((prev) => ({ ...prev, [socket.id]: initialData }));
+    setCircles((prevRect) => [...prevRect, initialData]);
   }
+
+  socket.emit(EVENTS.SHAPE.CREATE, { senderId: socket.id, initialData });
 };
 
 export const handleDrawingUpdate = (
@@ -91,6 +113,8 @@ export const handleDrawingUpdate = (
 
   const stage = e.target.getStage();
   const pos = stage.getPointerPosition();
+
+  let updatedData = {};
 
   if (selectedTool === "pen" || selectedTool === "eraser") {
     setShapePreviews((prev) => {
@@ -110,14 +134,12 @@ export const handleDrawingUpdate = (
       return prev;
     });
 
-    const updatedData = {
+    updatedData = {
       boardId,
       shapeId: shapeIdRef.current,
       className: "Line",
       points: [pos.x, pos.y],
     };
-
-    socket.emit(EVENTS.SHAPE.DRAW, { senderId: socket.id, updatedData });
   } else if (selectedTool === "rect") {
     setShapePreviews((prev) => {
       const preview = prev[socket.id];
@@ -138,7 +160,7 @@ export const handleDrawingUpdate = (
       }
       return prev;
     });
-    const updatedData = {
+    updatedData = {
       boardId,
       shapeId: shapeIdRef.current,
       className: "Rect",
@@ -147,8 +169,43 @@ export const handleDrawingUpdate = (
       width: Math.abs(pos.x - startPos.x),
       height: Math.abs(pos.y - startPos.y),
     };
-    socket.emit(EVENTS.SHAPE.DRAW, { senderId: socket.id, updatedData });
+  } else if (selectedTool === "circle") {
+    const x = Math.min(pos.x, startPos.x);
+    const y = Math.min(pos.y, startPos.y);
+    const width = Math.abs(pos.x - startPos.x);
+    const height = Math.abs(pos.y - startPos.y);
+
+    setShapePreviews((prev) => {
+      const preview = prev[socket.id];
+      if (preview) {
+        return {
+          ...prev,
+          [socket.id]: {
+            ...preview,
+            attrs: {
+              ...preview.attrs,
+              x: x + width / 2,
+              y: y + height / 2,
+              radiusX: width / 2,
+              radiusY: height / 2,
+            },
+          },
+        };
+      }
+      return prev;
+    });
+    updatedData = {
+      boardId,
+      shapeId: shapeIdRef.current,
+      className: "Circle",
+      x: x + width / 2,
+      y: y + height / 2,
+      radiusX: width / 2,
+      radiusY: height / 2,
+    };
   }
+
+  socket.emit(EVENTS.SHAPE.DRAW, { senderId: socket.id, updatedData });
 };
 
 export const handleDrawingComplete = ({
@@ -158,6 +215,7 @@ export const handleDrawingComplete = ({
   setLines,
   setRectangles,
   setShapePreviews,
+  setCircles,
 }) => {
   socket.emit(EVENTS.SHAPE.SAVE, {
     senderId: socket.id,
@@ -194,6 +252,22 @@ export const handleDrawingComplete = ({
         },
       };
       return newRects;
+    });
+  } else if (selectedTool === "circle") {
+    setCircles((prevCircles) => {
+      const newCircles = [...prevCircles];
+      const lastIndex = newCircles.length - 1;
+      newCircles[lastIndex] = {
+        ...newCircles[lastIndex],
+        attrs: {
+          ...newCircles[lastIndex].attrs,
+          x: shapePreviews[socket.id].attrs.x,
+          y: shapePreviews[socket.id].attrs.y,
+          radiusX: shapePreviews[socket.id].attrs.radiusX,
+          radiusY: shapePreviews[socket.id].attrs.radiusY,
+        },
+      };
+      return newCircles;
     });
   }
 

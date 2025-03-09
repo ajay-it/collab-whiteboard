@@ -1,7 +1,8 @@
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
+import { useParams } from "react-router-dom";
+
 import ReactKonva from "../components/ReactKonva";
 import Toolbar from "../components/Toolbar";
-import { useParams } from "react-router-dom";
 
 const BoardPage = () => {
   const [selectedTool, setSelectedTool] = useState("");

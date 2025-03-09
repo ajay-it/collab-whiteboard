@@ -1,11 +1,12 @@
 import React from "react";
+import { Box, Button } from "@mui/material";
+
 import {
   tools,
   strokeOption,
   strokeWidthOption,
   fillColorOption,
 } from "../utils/constants";
-import { Box, Button } from "@mui/material";
 import CustomCard from "./CustomCard";
 
 const Toolbar = ({
