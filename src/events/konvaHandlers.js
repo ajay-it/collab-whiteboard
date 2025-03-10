@@ -25,7 +25,7 @@ export const handleDrawingStart = (
     setSelectedId(null);
   }
 
-  if (!selectedTool) {
+  if (!selectedTool || selectedTool === "selection") {
     return;
   }
 
@@ -227,6 +227,10 @@ export const handleDrawingComplete = ({
   setShapePreviews,
   setCircles,
 }) => {
+  if (selectedTool === "selection") {
+    return;
+  }
+
   socket.emit(EVENTS.SHAPE.SAVE, {
     senderId: socket.id,
     data: shapePreviews[socket.id],

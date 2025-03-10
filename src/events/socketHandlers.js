@@ -163,3 +163,71 @@ export const handleSaveShape = (
     return remainingPreviews;
   });
 };
+
+export const handleModifyStart = (
+  data,
+  { setShapePreviews, setRectangles }
+) => {
+  const { senderId, initialData } = data;
+
+  // Remove selected shape from rectangles state
+  setRectangles((prevRects) => {
+    const { [initialData.shapeId]: selectedShape, ...otherShapes } = prevRects;
+
+    if (selectedShape) {
+      // Set selected shape in shapePreviews state
+      setShapePreviews((prev) => ({
+        ...prev,
+        [senderId]: selectedShape,
+      }));
+    }
+    return otherShapes;
+  });
+};
+
+export const handleModifyDraw = (data, { setShapePreviews }) => {
+  const { senderId, updatedData } = data;
+
+  setShapePreviews((prev) => {
+    const preview = prev[senderId];
+    if (preview) {
+      return {
+        ...prev,
+        [senderId]: {
+          ...preview,
+          attrs: {
+            ...preview.attrs,
+            x: updatedData.x,
+            y: updatedData.y,
+          },
+        },
+      };
+    }
+    return prev;
+  });
+};
+
+export const handleModifyEnd = (data, { setShapePreviews, setRectangles }) => {
+  const { senderId, saveData } = data;
+  const { shapeId } = saveData;
+
+  setShapePreviews((prev) => {
+    const { [senderId]: selectedShape, ...remainingPreviews } = prev;
+
+    if (selectedShape) {
+      setRectangles((prevRects) => ({
+        ...prevRects,
+        [shapeId]: {
+          ...selectedShape,
+          attrs: {
+            ...selectedShape.attrs,
+            x: saveData.x,
+            y: saveData.y,
+          },
+        },
+      }));
+    }
+
+    return remainingPreviews;
+  });
+};

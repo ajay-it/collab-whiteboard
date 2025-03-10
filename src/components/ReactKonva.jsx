@@ -11,6 +11,9 @@ import {
   handleCreateShape,
   handleDrawShape,
   handleLoadStage,
+  handleModifyDraw,
+  handleModifyEnd,
+  handleModifyStart,
   handleSaveShape,
 } from "../events/socketHandlers";
 import {
@@ -29,15 +32,11 @@ const ReactKonva = ({
   const [lines, setLines] = useState({});
   const [rectangles, setRectangles] = useState({});
   const [circles, setCircles] = useState({});
+  const [shapePreviews, setShapePreviews] = useState({});
 
   const [selectedId, setSelectedId] = useState(null);
   const [isDrawing, setIsDrawing] = useState(false);
-  // const [penColor, setPenColor] = useState("black");
-  // const [cursorPosition, setCursorPosition] = useState();
-  // const [shapeId, setShapeId] = useState();
   const [startPos, setStartPos] = useState(null);
-
-  const [shapePreviews, setShapePreviews] = useState({});
 
   const stageRef = useRef(null);
   const shapeIdRef = useRef(null);
@@ -84,6 +83,16 @@ const ReactKonva = ({
     });
   };
 
+  const handleOnShapeChange = (newAttrs, id) => {
+    setRectangles((prevRects) => ({
+      ...prevRects,
+      [id]: {
+        ...prevRects[id],
+        attrs: { ...prevRects[id].attrs, ...newAttrs },
+      },
+    }));
+  };
+
   useEffect(() => {
     if (boardId && stageRef.current) {
       const stage = stageRef.current;
@@ -122,6 +131,18 @@ const ReactKonva = ({
         })
       );
 
+      socket.on(EVENTS.SHAPE.MODIFY_START, (data) =>
+        handleModifyStart(data, { setShapePreviews, setRectangles })
+      );
+
+      socket.on(EVENTS.SHAPE.MODIFY_DRAW, (data) =>
+        handleModifyDraw(data, { setShapePreviews, setRectangles })
+      );
+
+      socket.on(EVENTS.SHAPE.MODIFY_END, (data) =>
+        handleModifyEnd(data, { setShapePreviews, setRectangles })
+      );
+
       return () => {
         socket.off(EVENTS.BOARD.LOAD);
         socket.off(EVENTS.SHAPE.CREATE);
@@ -145,8 +166,8 @@ const ReactKonva = ({
     <>
       <Stage
         ref={stageRef}
-        width={1000}
-        height={1000}
+        width={window.innerWidth}
+        height={window.innerHeight}
         className="border border-red-500 m-auto w-full"
         onMouseDown={handleMouseDown}
         onTouchStart={handleMouseDown}
@@ -164,15 +185,16 @@ const ReactKonva = ({
                 <RectangleComponent
                   key={shape.shapeId + i}
                   shapeProps={shape}
-                  isSelected={shape.id === selectedId}
+                  selectedTool={selectedTool}
+                  isSelected={shape.shapeId === selectedId}
                   onSelect={() => {
-                    setSelectedId(shape.id);
+                    if (selectedTool === "selection") {
+                      setSelectedId(shape.shapeId);
+                    }
                   }}
-                  onChange={(newAttrs) => {
-                    const rects = rectangles.slice();
-                    rects[i] = newAttrs;
-                    setRectangles(rects);
-                  }}
+                  onChange={(newAttrs) =>
+                    handleOnShapeChange(newAttrs, shape.shapeId)
+                  }
                 />
               );
             } else if (shape.className === "Circle") {

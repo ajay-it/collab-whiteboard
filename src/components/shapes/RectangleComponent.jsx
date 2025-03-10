@@ -1,8 +1,10 @@
 import React, { memo, useEffect, useRef } from "react";
 import { Rect, Transformer } from "react-konva";
+import socket from "../../socket";
+import { EVENTS } from "../../utils/constants";
 
 const RectangleComponent = memo(
-  ({ shapeProps, isSelected, onSelect, onChange }) => {
+  ({ shapeProps, isSelected, onSelect, onChange, selectedTool }) => {
     const rectRef = useRef(null);
     const trRef = useRef(null);
 
@@ -17,27 +19,63 @@ const RectangleComponent = memo(
 
         const scaleX = node.scaleX();
         const scaleY = node.scaleY();
-
         // we will reset it back
         node.scaleX(1);
         node.scaleY(1);
         onChange({
-          ...shapeProps,
           x: node.x(),
           y: node.y(),
-          // set minimal value
-          width: Math.max(5, node.width() * scaleX),
-          height: Math.max(5, node.height() * scaleY),
+          width: node.width() * scaleX,
+          height: node.height() * scaleY,
         });
       }
     };
 
     const handleDrag = (e) => {
-      if (e.type === "dragend") {
-        onChange({
-          ...shapeProps,
+      if (e.type === "dragstart") {
+        const initialData = {
+          boardId: shapeProps.boardId,
+          shapeId: shapeProps.shapeId,
+          ClassName: shapeProps.ClassName,
+        };
+
+        socket.emit(EVENTS.SHAPE.MODIFY_START, {
+          senderId: socket.id,
+          type: "drag",
+          initialData,
+        });
+      } else if (e.type === "dragmove") {
+        const updatedData = {
+          boardId: shapeProps.boardId,
+          shapeId: shapeProps.shapeId,
+          ClassName: shapeProps.ClassName,
           x: e.target.x(),
           y: e.target.y(),
+        };
+
+        socket.emit(EVENTS.SHAPE.MODIFY_DRAW, {
+          senderId: socket.id,
+          type: "drag",
+          updatedData,
+        });
+      } else if (e.type === "dragend") {
+        onChange({
+          x: e.target.x(),
+          y: e.target.y(),
+        });
+
+        const saveData = {
+          boardId: shapeProps.boardId,
+          shapeId: shapeProps.shapeId,
+          ClassName: shapeProps.ClassName,
+          x: e.target.x(),
+          y: e.target.y(),
+        };
+
+        socket.emit(EVENTS.SHAPE.MODIFY_END, {
+          senderId: socket.id,
+          type: "drag",
+          saveData,
         });
       }
     };
@@ -59,10 +97,13 @@ const RectangleComponent = memo(
         <Rect
           onClick={onSelect}
           onTap={onSelect}
-          // ref={rectRef}
+          ref={rectRef}
           {...shapeProps.attrs}
+          onDragStart={handleDrag}
+          onDragMove={handleDrag}
           onDragEnd={handleDrag}
           onTransformEnd={handleTransform}
+          draggable={selectedTool === "selection"}
         />
         {isSelected && (
           <Transformer
