@@ -286,3 +286,52 @@ export const handleDrawingComplete = ({
     return remainingPreviews;
   });
 };
+
+export const handleDragShape = (e, { shapeProps, onChange }) => {
+  if (e.type === "dragstart") {
+    const initialData = {
+      boardId: shapeProps.boardId,
+      shapeId: shapeProps.shapeId,
+      className: shapeProps.className,
+    };
+
+    socket.emit(EVENTS.SHAPE.MODIFY_START, {
+      senderId: socket.id,
+      type: "drag",
+      initialData,
+    });
+  } else if (e.type === "dragmove") {
+    const updatedData = {
+      boardId: shapeProps.boardId,
+      shapeId: shapeProps.shapeId,
+      className: shapeProps.className,
+      x: e.target.x(),
+      y: e.target.y(),
+    };
+
+    socket.emit(EVENTS.SHAPE.MODIFY_DRAW, {
+      senderId: socket.id,
+      type: "drag",
+      updatedData,
+    });
+  } else if (e.type === "dragend") {
+    onChange({
+      x: e.target.x(),
+      y: e.target.y(),
+    });
+
+    const saveData = {
+      boardId: shapeProps.boardId,
+      shapeId: shapeProps.shapeId,
+      className: shapeProps.className,
+      x: e.target.x(),
+      y: e.target.y(),
+    };
+
+    socket.emit(EVENTS.SHAPE.MODIFY_END, {
+      senderId: socket.id,
+      type: "drag",
+      saveData,
+    });
+  }
+};

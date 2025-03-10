@@ -1,7 +1,7 @@
 import React, { memo, useEffect, useRef } from "react";
 import { Rect, Transformer } from "react-konva";
-import socket from "../../socket";
-import { EVENTS } from "../../utils/constants";
+
+import { handleDragShape } from "../../events/konvaHandlers";
 
 const RectangleComponent = memo(
   ({ shapeProps, isSelected, onSelect, onChange, selectedTool }) => {
@@ -32,52 +32,7 @@ const RectangleComponent = memo(
     };
 
     const handleDrag = (e) => {
-      if (e.type === "dragstart") {
-        const initialData = {
-          boardId: shapeProps.boardId,
-          shapeId: shapeProps.shapeId,
-          ClassName: shapeProps.ClassName,
-        };
-
-        socket.emit(EVENTS.SHAPE.MODIFY_START, {
-          senderId: socket.id,
-          type: "drag",
-          initialData,
-        });
-      } else if (e.type === "dragmove") {
-        const updatedData = {
-          boardId: shapeProps.boardId,
-          shapeId: shapeProps.shapeId,
-          ClassName: shapeProps.ClassName,
-          x: e.target.x(),
-          y: e.target.y(),
-        };
-
-        socket.emit(EVENTS.SHAPE.MODIFY_DRAW, {
-          senderId: socket.id,
-          type: "drag",
-          updatedData,
-        });
-      } else if (e.type === "dragend") {
-        onChange({
-          x: e.target.x(),
-          y: e.target.y(),
-        });
-
-        const saveData = {
-          boardId: shapeProps.boardId,
-          shapeId: shapeProps.shapeId,
-          ClassName: shapeProps.ClassName,
-          x: e.target.x(),
-          y: e.target.y(),
-        };
-
-        socket.emit(EVENTS.SHAPE.MODIFY_END, {
-          senderId: socket.id,
-          type: "drag",
-          saveData,
-        });
-      }
+      handleDragShape(e, { shapeProps, onChange });
     };
 
     useEffect(() => {
@@ -95,29 +50,18 @@ const RectangleComponent = memo(
     return (
       <>
         <Rect
-          onClick={onSelect}
-          onTap={onSelect}
           ref={rectRef}
           {...shapeProps.attrs}
+          onClick={onSelect}
+          onTap={onSelect}
           onDragStart={handleDrag}
           onDragMove={handleDrag}
           onDragEnd={handleDrag}
           onTransformEnd={handleTransform}
           draggable={selectedTool === "selection"}
         />
-        {isSelected && (
-          <Transformer
-            ref={trRef}
-            flipEnabled={false}
-            boundBoxFunc={(oldBox, newBox) => {
-              // limit resize
-              if (Math.abs(newBox.width) < 5 || Math.abs(newBox.height) < 5) {
-                return oldBox;
-              }
-              return newBox;
-            }}
-          />
-        )}
+
+        {isSelected && <Transformer ref={trRef} flipEnabled={false} />}
       </>
     );
   }

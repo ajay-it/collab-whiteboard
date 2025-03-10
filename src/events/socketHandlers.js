@@ -166,23 +166,41 @@ export const handleSaveShape = (
 
 export const handleModifyStart = (
   data,
-  { setShapePreviews, setRectangles }
+  { setShapePreviews, setRectangles, setCircles }
 ) => {
   const { senderId, initialData } = data;
 
-  // Remove selected shape from rectangles state
-  setRectangles((prevRects) => {
-    const { [initialData.shapeId]: selectedShape, ...otherShapes } = prevRects;
+  if (initialData.className === "Rect") {
+    // Remove selected shape from rectangles state
+    setRectangles((prevRects) => {
+      const { [initialData.shapeId]: selectedShape, ...otherShapes } =
+        prevRects;
 
-    if (selectedShape) {
-      // Set selected shape in shapePreviews state
-      setShapePreviews((prev) => ({
-        ...prev,
-        [senderId]: selectedShape,
-      }));
-    }
-    return otherShapes;
-  });
+      if (selectedShape) {
+        // Set selected shape in shapePreviews state
+        setShapePreviews((prev) => ({
+          ...prev,
+          [senderId]: selectedShape,
+        }));
+      }
+      return otherShapes;
+    });
+  } else if (initialData.className === "Circle") {
+    // Remove selected shape from rectangles state
+    setCircles((prevCircles) => {
+      const { [initialData.shapeId]: selectedShape, ...otherShapes } =
+        prevCircles;
+
+      if (selectedShape) {
+        // Set selected shape in shapePreviews state
+        setShapePreviews((prev) => ({
+          ...prev,
+          [senderId]: selectedShape,
+        }));
+      }
+      return otherShapes;
+    });
+  }
 };
 
 export const handleModifyDraw = (data, { setShapePreviews }) => {
@@ -207,7 +225,10 @@ export const handleModifyDraw = (data, { setShapePreviews }) => {
   });
 };
 
-export const handleModifyEnd = (data, { setShapePreviews, setRectangles }) => {
+export const handleModifyEnd = (
+  data,
+  { setShapePreviews, setRectangles, setCircles }
+) => {
   const { senderId, saveData } = data;
   const { shapeId } = saveData;
 
@@ -215,17 +236,31 @@ export const handleModifyEnd = (data, { setShapePreviews, setRectangles }) => {
     const { [senderId]: selectedShape, ...remainingPreviews } = prev;
 
     if (selectedShape) {
-      setRectangles((prevRects) => ({
-        ...prevRects,
-        [shapeId]: {
-          ...selectedShape,
-          attrs: {
-            ...selectedShape.attrs,
-            x: saveData.x,
-            y: saveData.y,
+      if (saveData.className === "Rect") {
+        setRectangles((prevRects) => ({
+          ...prevRects,
+          [shapeId]: {
+            ...selectedShape,
+            attrs: {
+              ...selectedShape.attrs,
+              x: saveData.x,
+              y: saveData.y,
+            },
           },
-        },
-      }));
+        }));
+      } else if (saveData.className === "Circle") {
+        setCircles((prevCircles) => ({
+          ...prevCircles,
+          [shapeId]: {
+            ...selectedShape,
+            attrs: {
+              ...selectedShape.attrs,
+              x: saveData.x,
+              y: saveData.y,
+            },
+          },
+        }));
+      }
     }
 
     return remainingPreviews;

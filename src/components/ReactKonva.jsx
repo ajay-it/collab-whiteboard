@@ -83,14 +83,30 @@ const ReactKonva = ({
     });
   };
 
-  const handleOnShapeChange = (newAttrs, id) => {
-    setRectangles((prevRects) => ({
-      ...prevRects,
-      [id]: {
-        ...prevRects[id],
-        attrs: { ...prevRects[id].attrs, ...newAttrs },
-      },
-    }));
+  const handleOnShapeChange = (newAttrs, id, className) => {
+    if (className === "Rect") {
+      setRectangles((prevRects) => ({
+        ...prevRects,
+        [id]: {
+          ...prevRects[id],
+          attrs: { ...prevRects[id].attrs, ...newAttrs },
+        },
+      }));
+    } else if (className === "Circle") {
+      setCircles((prevCircles) => ({
+        ...prevCircles,
+        [id]: {
+          ...prevCircles[id],
+          attrs: { ...prevCircles[id].attrs, ...newAttrs },
+        },
+      }));
+    }
+  };
+
+  const handleOnShapeSelect = (shapeId) => {
+    if (selectedTool === "selection") {
+      setSelectedId(shapeId);
+    }
   };
 
   useEffect(() => {
@@ -132,15 +148,15 @@ const ReactKonva = ({
       );
 
       socket.on(EVENTS.SHAPE.MODIFY_START, (data) =>
-        handleModifyStart(data, { setShapePreviews, setRectangles })
+        handleModifyStart(data, { setShapePreviews, setRectangles, setCircles })
       );
 
       socket.on(EVENTS.SHAPE.MODIFY_DRAW, (data) =>
-        handleModifyDraw(data, { setShapePreviews, setRectangles })
+        handleModifyDraw(data, { setShapePreviews })
       );
 
       socket.on(EVENTS.SHAPE.MODIFY_END, (data) =>
-        handleModifyEnd(data, { setShapePreviews, setRectangles })
+        handleModifyEnd(data, { setShapePreviews, setRectangles, setCircles })
       );
 
       return () => {
@@ -187,19 +203,32 @@ const ReactKonva = ({
                   shapeProps={shape}
                   selectedTool={selectedTool}
                   isSelected={shape.shapeId === selectedId}
-                  onSelect={() => {
-                    if (selectedTool === "selection") {
-                      setSelectedId(shape.shapeId);
-                    }
-                  }}
+                  onSelect={() => handleOnShapeSelect(shape.shapeId)}
                   onChange={(newAttrs) =>
-                    handleOnShapeChange(newAttrs, shape.shapeId)
+                    handleOnShapeChange(
+                      newAttrs,
+                      shape.shapeId,
+                      shape.className
+                    )
                   }
                 />
               );
             } else if (shape.className === "Circle") {
               return (
-                <CircleComponent key={shape.shapeId + i} shapeProps={shape} />
+                <CircleComponent
+                  key={shape.shapeId + i}
+                  shapeProps={shape}
+                  selectedTool={selectedTool}
+                  isSelected={shape.shapeId === selectedId}
+                  onSelect={() => handleOnShapeSelect(shape.shapeId)}
+                  onChange={(newAttrs) =>
+                    handleOnShapeChange(
+                      newAttrs,
+                      shape.shapeId,
+                      shape.className
+                    )
+                  }
+                />
               );
             }
           })}
